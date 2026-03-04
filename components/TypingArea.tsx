@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { CharDisplay } from "./CharDisplay";
 import { StatsBar } from "./StatsBar";
 import { useTypingEngine } from "@/hooks/useTypingEngine";
 import type { Article } from "@/lib/news";
+
+// Each line is exactly this tall. Must match lineHeight style on the text div.
+const LINE_HEIGHT_REM = 3.25;
 
 interface TypingAreaProps {
   article: Article;
@@ -17,6 +20,31 @@ export function TypingArea({ article, category, onSkip }: TypingAreaProps) {
   const router = useRouter();
   const { charStates, typedCount, wpm, accuracy, isStarted, isFinished, reset } =
     useTypingEngine(article.body);
+
+  const textRef = useRef<HTMLDivElement>(null);
+  const [translateY, setTranslateY] = useState(0);
+
+  // Recompute scroll offset whenever typedCount changes
+  useEffect(() => {
+    if (!textRef.current) return;
+    const cursorEl = textRef.current.querySelector<HTMLElement>("[data-cursor='true']");
+    if (!cursorEl) return;
+
+    const lh = parseFloat(getComputedStyle(textRef.current).lineHeight);
+    if (!lh) return;
+
+    // Which visual line is the cursor on?
+    const cursorLine = Math.floor(cursorEl.offsetTop / lh);
+
+    // Keep cursor on line index 1 (second visible row), snapped to line boundary
+    const offset = Math.max(0, cursorLine - 1) * lh;
+    setTranslateY(offset);
+  }, [typedCount]);
+
+  // Reset scroll when article changes
+  useEffect(() => {
+    setTranslateY(0);
+  }, [article.id]);
 
   // Navigate to result on finish
   useEffect(() => {
@@ -30,7 +58,7 @@ export function TypingArea({ article, category, onSkip }: TypingAreaProps) {
     router.push(`/result?${params}`);
   }, [isFinished, wpm, accuracy, category, article.title, router]);
 
-  // Tab to skip article
+  // Tab to skip
   useEffect(() => {
     function handleTab(e: KeyboardEvent) {
       if (e.key === "Tab") {
@@ -47,7 +75,7 @@ export function TypingArea({ article, category, onSkip }: TypingAreaProps) {
     <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
       <StatsBar wpm={wpm} accuracy={accuracy} isStarted={isStarted} />
 
-      {/* Article source + title */}
+      {/* Source + title */}
       <div className="flex flex-col gap-1">
         <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">
           {article.source}
@@ -57,30 +85,34 @@ export function TypingArea({ article, category, onSkip }: TypingAreaProps) {
         </p>
       </div>
 
-      {/* Typing area */}
+      {/* 3-line viewport — overflow hidden, text translates upward */}
       <div
-        className="relative font-mono text-xl leading-relaxed tracking-wide select-none"
+        className="overflow-hidden select-none"
+        style={{ height: `${LINE_HEIGHT_REM * 3}rem` }}
         aria-label="Typing area"
       >
-        {article.body.split("").map((char, i) => (
-          <CharDisplay
-            key={i}
-            char={char}
-            state={charStates[i] ?? "pending"}
-            isCursor={i === typedCount}
-          />
-        ))}
-        {/* Cursor at end when all typed */}
-        {typedCount === article.body.length && (
-          <span
-            className="inline-block w-0.5 h-5 bg-yellow-400 align-middle"
-            style={{ animation: "blink 1s step-end infinite" }}
-          />
-        )}
+        <div
+          ref={textRef}
+          className="font-mono text-xl tracking-wide"
+          style={{
+            lineHeight: `${LINE_HEIGHT_REM}rem`,
+            transform: `translateY(-${translateY}px)`,
+            transition: "transform 0.12s ease",
+          }}
+        >
+          {article.body.split("").map((char, i) => (
+            <CharDisplay
+              key={i}
+              char={char}
+              state={charStates[i] ?? "pending"}
+              isCursor={i === typedCount}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Hint & shortcuts */}
-      <div className="flex justify-between text-xs text-muted-foreground font-mono mt-2">
+      <div className="flex justify-between text-xs text-muted-foreground font-mono">
         {!isStarted ? (
           <span className="animate-pulse">Press any key to begin...</span>
         ) : (
@@ -93,7 +125,6 @@ export function TypingArea({ article, category, onSkip }: TypingAreaProps) {
         </span>
       </div>
 
-      {/* Mobile warning */}
       <p className="text-xs text-muted-foreground text-center md:hidden border border-yellow-400/20 rounded px-3 py-2 bg-yellow-400/5">
         TypePulse works best on a physical keyboard
       </p>

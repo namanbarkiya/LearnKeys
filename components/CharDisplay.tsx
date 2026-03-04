@@ -17,7 +17,7 @@ export function CharDisplay({ char, state, isCursor }: CharDisplayProps) {
         : "text-gray-600";
 
   return (
-    <span className={`relative ${colorClass}`}>
+    <span className={`relative ${colorClass}`} data-cursor={isCursor ? "true" : undefined}>
       {isCursor && (
         <span
           className="absolute -left-px top-0 h-full w-0.5 bg-yellow-400"
