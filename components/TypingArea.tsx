@@ -8,7 +8,7 @@ import { useTypingEngine } from "@/hooks/useTypingEngine";
 import type { Article } from "@/lib/news";
 
 // Each line is exactly this tall. Must match lineHeight style on the text div.
-const LINE_HEIGHT_REM = 3.25;
+const LINE_HEIGHT_REM = 3.75;
 
 /** Split text into word tokens + space tokens, each with their start index. */
 function buildWordTokens(text: string): { word: string; start: number }[] {
@@ -121,7 +121,7 @@ export function TypingArea({ article, category, onSkip }: TypingAreaProps) {
       >
         <div
           ref={textRef}
-          className="font-mono text-xl tracking-wide w-full"
+          className="font-mono text-3xl tracking-wide w-full"
           style={{
             lineHeight: `${LINE_HEIGHT_REM}rem`,
             transform: `translateY(-${translateY}px)`,
