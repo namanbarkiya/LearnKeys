@@ -87,17 +87,18 @@ export function TypingArea({ article, category, onSkip }: TypingAreaProps) {
 
       {/* 3-line viewport — overflow hidden, text translates upward */}
       <div
-        className="overflow-hidden select-none"
+        className="overflow-hidden select-none w-full"
         style={{ height: `${LINE_HEIGHT_REM * 3}rem` }}
         aria-label="Typing area"
       >
         <div
           ref={textRef}
-          className="font-mono text-xl tracking-wide"
+          className="font-mono text-xl tracking-wide w-full"
           style={{
             lineHeight: `${LINE_HEIGHT_REM}rem`,
             transform: `translateY(-${translateY}px)`,
             transition: "transform 0.12s ease",
+            wordBreak: "break-word",
           }}
         >
           {article.body.split("").map((char, i) => (
